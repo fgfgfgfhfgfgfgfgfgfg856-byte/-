@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: alien-stage-telegram
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    buildCommand: unzip -o "AlienStageTelegram-multiplatform (1).zip" -d . && cd AlienStageTelegram && npm install --omit=dev
+    startCommand: cd AlienStageTelegram && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_VERSION
+        value: 22.12.0
