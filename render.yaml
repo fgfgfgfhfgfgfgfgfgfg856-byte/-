@@ -5,7 +5,7 @@ services:
     plan: free
     region: frankfurt
     branch: main
-    buildCommand: 'unzip -o "AlienStageTelegram-multiplatform (1).zip" -d . && node render-theme/apply-theme.cjs && cd AlienStageTelegram && npm install --omit=dev'
+    buildCommand: 'unzip -o "AlienStageTelegram-multiplatform (1).zip" -d . && node render-theme/apply-theme.cjs && node render-theme/install-gifts.cjs && cd AlienStageTelegram && npm install --omit=dev'
     startCommand: 'cd AlienStageTelegram && npm start'
     healthCheckPath: /api/health
     envVars:
