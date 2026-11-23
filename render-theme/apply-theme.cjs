@@ -1,0 +1,13 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.join(__dirname, 'AlienStageTelegram');
+const publicDir = path.join(root, 'public');
+const themeDir = path.join(__dirname, 'render-theme');
+fs.copyFileSync(path.join(themeDir, 'telegram-theme.css'), path.join(publicDir, 'telegram-theme.css'));
+fs.copyFileSync(path.join(themeDir, 'telegram-theme.js'), path.join(publicDir, 'telegram-theme.js'));
+const indexPath = path.join(publicDir, 'index.html');
+let html = fs.readFileSync(indexPath, 'utf8');
+if (!html.includes('/telegram-theme.css')) html = html.replace('</head>', '  <link rel="stylesheet" href="/telegram-theme.css">\n</head>');
+if (!html.includes('/telegram-theme.js')) html = html.replace('<script src="/app.js" defer></script>', '<script src="/app.js" defer></script>\n  <script src="/telegram-theme.js" defer></script>');
+fs.writeFileSync(indexPath, html, 'utf8');
+console.log('Telegram Desktop theme installed.');
