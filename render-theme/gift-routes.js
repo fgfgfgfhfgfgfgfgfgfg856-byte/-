@@ -3,7 +3,25 @@ const giftCatalog=[{id:'rose',name:'Роза',emoji:'🌹'},{id:'heart',name:'С
 const giftLimiter=rateLimit({windowMs:3600000,limit:5,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Слишком много запросов. Попробуй позже.'}});
 function giftMailer(){const host=process.env.SMTP_HOST,port=Number(process.env.SMTP_PORT||465),user=process.env.SMTP_USER,pass=process.env.SMTP_PASS;if(!host||!user||!pass)return null;return nodemailer.createTransport({host,port,secure:port===465,auth:{user,pass}});}
 app.get('/api/gifts/catalog',auth,(_req,res)=>res.json({gifts:giftCatalog}));
-app.get('/api/gifts/received',auth,(req,res)=>{const rows=db.prepare('SELECT g.id,g.gift_id,g.note,g.created_at,u.username,u.display_name FROM user_gifts g JOIN users u ON u.id=g.sender_id WHERE g.recipient_id=? ORDER BY g.created_at DESC LIMIT 50').all(req.user.id);res.json({gifts:rows.map(x=>({...x,gift:giftCatalog.find(g=>g.id===x.gift_id)||null}))});});
+app.get('/api/gifts/received',auth,(req,res)=>{
+ const rows=db.prepare('SELECT g.id,g.gift_id,g.note,g.created_at,u.username,u.display_name FROM user_gifts g JOIN users u ON u.id=g.sender_id WHERE g.recipient_id=? ORDER BY g.created_at DESC LIMIT 100').all(req.user.id);
+ res.json({gifts:rows.map(x=>({...x,gift:giftCatalog.find(g=>g.id===x.gift_id)||null}))});
+});
+app.patch('/api/me/profile-gift',auth,(req,res)=>{
+ const giftId=req.body.gift_id===null||req.body.gift_id===''?null:String(req.body.gift_id);
+ if(giftId&&!giftCatalog.some(g=>g.id===giftId))return res.status(400).json({error:'Такого подарка нет.'});
+ if(giftId&&!db.prepare('SELECT 1 FROM user_gifts WHERE recipient_id=? AND gift_id=? LIMIT 1').get(req.user.id,giftId))return res.status(403).json({error:'Можно поставить только подарок, который ты действительно получил.'});
+ db.prepare('UPDATE users SET profile_gift_id=? WHERE id=?').run(giftId,req.user.id);
+ res.json({ok:true,profile_gift_id:giftId});
+});
+app.get('/api/users/:id/profile',auth,(req,res)=>{
+ const user=db.prepare('SELECT id,username,display_name,avatar_path,created_at,profile_gift_id FROM users WHERE id=?').get(String(req.params.id));
+ if(!user)return res.status(404).json({error:'Пользователь не найден.'});
+ const rows=db.prepare('SELECT gift_id,COUNT(*) AS count,MAX(created_at) AS last_received FROM user_gifts WHERE recipient_id=? GROUP BY gift_id ORDER BY last_received DESC').all(user.id);
+ const gifts=rows.map(row=>({...row,gift:giftCatalog.find(g=>g.id===row.gift_id)||null}));
+ const featuredGift=gifts.find(x=>x.gift_id===user.profile_gift_id)?.gift||null;
+ res.json({user:publicUser(user),gifts,featured_gift:featuredGift});
+});
 app.post('/api/gifts/send-code',auth,giftLimiter,async(req,res)=>{
  const username=String(req.body.username||'').trim().replace(/^@/,'');
  const giftId=String(req.body.gift_id||''),note=String(req.body.note||'').trim().slice(0,180),gift=giftCatalog.find(x=>x.id===giftId);
