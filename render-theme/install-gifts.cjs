@@ -74,7 +74,13 @@ if (!html.includes('/gifts.js')) {
 }
 let appJs = fs.readFileSync(appJsPath, 'utf8');
 if (!appJs.includes('person.profile_gift_emoji')) {
-  const before = '<div class="person-result-name>' + '$' + '{esc(person.display_name)}</div>';
+  const before = '<div class="person-result-name">' + '
+  const after = "<div class=\"person-result-name\">" + "$" + "{esc(person.display_name)} " + "$" + "{person.profile_gift_emoji ? '<span class=\"person-featured-gift\">' + esc(person.profile_gift_emoji) + '</span>' : ''}</div>";
+  if (appJs.includes(before)) appJs = appJs.replace(before, after);
+  fs.writeFileSync(appJsPath, appJs, 'utf8');
+}
+console.log('Telegram-style collectible gifts installed.');
+ + '{esc(person.display_name)}</div>';
   const after = "<div class=\"person-result-name\">" + "$" + "{esc(person.display_name)} " + "$" + "{person.profile_gift_emoji ? '<span class=\"person-featured-gift\">' + esc(person.profile_gift_emoji) + '</span>' : ''}</div>";
   if (appJs.includes(before)) appJs = appJs.replace(before, after);
   fs.writeFileSync(appJsPath, appJs, 'utf8');
