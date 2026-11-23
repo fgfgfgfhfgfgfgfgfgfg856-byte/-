@@ -1,8 +1,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const root = path.join(__dirname, 'AlienStageTelegram');
+const repoRoot = path.resolve(__dirname, '..');
+const root = path.join(repoRoot, 'AlienStageTelegram');
 const publicDir = path.join(root, 'public');
-const themeDir = path.join(__dirname, 'render-theme');
+const themeDir = __dirname;
 fs.copyFileSync(path.join(themeDir, 'telegram-theme.css'), path.join(publicDir, 'telegram-theme.css'));
 fs.copyFileSync(path.join(themeDir, 'telegram-theme.js'), path.join(publicDir, 'telegram-theme.js'));
 const indexPath = path.join(publicDir, 'index.html');
