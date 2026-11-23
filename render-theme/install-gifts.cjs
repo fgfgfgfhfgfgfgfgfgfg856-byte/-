@@ -1,6 +1,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'..','AlienStageTelegram');
 const serverPath=path.join(root,'server.js'),indexPath=path.join(root,'public','index.html');
+fs.copyFileSync(path.join(__dirname,'gifts.js'),path.join(root,'public','gifts.js'));
 let s=fs.readFileSync(serverPath,'utf8');
 if(!s.includes("const nodemailer = require('nodemailer');"))s=s.replace("require('dotenv').config();","require('dotenv').config();\nconst nodemailer = require('nodemailer');");
 if(!s.includes('CREATE TABLE IF NOT EXISTS gift_verifications')){
