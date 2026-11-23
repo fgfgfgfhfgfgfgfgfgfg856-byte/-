@@ -1,0 +1,119 @@
+/* Telegram Desktop-inspired interface for AlienStageTelegram */
+:root{--tg-bg:#0e1621;--tg-panel:#17212b;--tg-panel2:#202b36;--tg-line:#263644;--tg-text:#eef3f7;--tg-muted:#9aaab8;--tg-blue:#5288c1}
+body{background:var(--tg-bg);color:var(--tg-text);font-family:Arial,Inter,system-ui,sans-serif}
+.app{display:grid!important;grid-template-columns:72px 360px minmax(0,1fr);background:var(--tg-bg);gap:0}
+.telegram-rail{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 6px;background:#17212b;border-right:1px solid #243442;min-width:0}
+.telegram-menu-button{border:0;background:transparent;color:#adbac5;font-size:22px;width:54px;height:46px;border-radius:9px}
+.telegram-menu-button:hover{background:#223344;color:#fff}
+.telegram-rail-divider{height:1px;background:#2b3946;width:42px;margin:0 0 3px}
+.telegram-rail-nav{display:flex!important;flex-direction:column;gap:6px;width:100%;margin:0!important}
+.telegram-rail-nav .nav-btn{height:58px;min-height:58px;width:100%;padding:4px 1px;display:flex;flex-direction:column;gap:3px;border:0;border-radius:9px;background:transparent;color:#9baab7;font-size:9px}
+.telegram-rail-nav .nav-btn .nav-icon{font-size:21px;line-height:24px;color:inherit}
+.telegram-rail-nav .nav-btn.active{background:#2b5278;color:#fff}
+.telegram-rail-nav .nav-btn:hover{background:#223746;color:#fff}
+.telegram-rail-foot{margin-top:auto;color:#687b8b;font-size:9px;letter-spacing:1px}
+.sidebar{min-width:0;height:100%;display:flex;flex-direction:column;padding:0;background:#17212b;border-right:1px solid #263644;overflow:hidden}
+.side-brand-row{display:none}
+.sidebar .list-heading{padding:17px 13px 12px;align-items:center}
+.sidebar .list-heading h2{font-size:18px;font-weight:600;letter-spacing:0;color:#f0f4f7;margin:0}
+.sidebar .list-heading .eyebrow{display:none}
+.sidebar .square-btn{border:0;background:transparent;color:#aab9c5;font-size:25px;width:36px;height:36px;border-radius:50%}
+.sidebar .square-btn:hover{background:#263746}
+.sidebar .search-box{margin:0 12px 10px;height:38px;border:1px solid transparent;border-radius:8px;background:#242f3b;padding:0 10px}
+.sidebar .search-box:focus-within{border-color:#5288c1}
+.sidebar .search-box>span{color:#91a6b7}
+.sidebar .search-box input{font-size:13px;color:#eaf0f4}
+.sidebar .search-box input::placeholder{color:#8999a7}
+.sidebar .search-box kbd{display:none}
+.sidebar .people-hint{padding:8px 14px;color:#9cacb9;font-size:11px;line-height:1.5}
+.conversation-list{padding:2px 0 12px;scrollbar-color:#344654 transparent}
+.conversation-list::-webkit-scrollbar-thumb{background:#344654}
+.conversation-item{padding:10px 12px;min-height:68px;border:0;border-radius:0;margin:0;gap:11px}
+.conversation-item:hover{background:#1e2c3a}
+.conversation-item.active{background:#2b5278;border:0}
+.conversation-item .avatar{width:46px;height:46px;border-radius:50%;font-size:14px}
+.conversation-item .avatar img{border-radius:50%}
+.conversation-name{color:#f0f4f7;font-size:13px;font-weight:600}
+.conversation-time{color:#8193a2;font-size:10px}
+.conversation-preview{color:#9cabb8;font-size:11px;margin-top:4px}
+.conversation-item.active .conversation-preview,.conversation-item.active .conversation-time{color:#d0dfed}
+.empty-list{padding:24px 17px;color:#95a5b3;font-size:12px;line-height:1.6;text-align:center}
+.sidebar-bottom{display:none}
+.workspace{height:100%;min-width:0;background:#0e1621;overflow:hidden}
+.workspace:before{display:none}
+.welcome-screen{background:#0e1621;color:#eaf0f4}
+.welcome-rings{width:92px;height:92px;border:0;box-shadow:none;margin-bottom:20px}
+.welcome-rings:before,.welcome-rings:after{display:none}
+.welcome-core{width:76px;height:76px;border-radius:50%;background:#1e3142;color:#78b7e7;box-shadow:none}
+.welcome-screen h1{font-size:22px;letter-spacing:0;font-weight:600}
+.welcome-screen h1 em{color:#78b7e7;background:none}
+.welcome-screen>p{font-size:13px;color:#91a1af}
+.welcome-shortcuts{display:none}
+.chat-screen{background:#0e1621}
+.chat-header{height:62px;flex-shrink:0;padding:0 17px;gap:12px;background:#17212b;border-bottom:1px solid #243442}
+.chat-header .avatar{width:42px;height:42px;border-radius:50%}
+.chat-heading h2{font-size:14px;font-weight:600;color:#f1f5f7}
+.chat-heading p{font-size:11px;color:#91a2af}
+.header-action{height:37px;min-width:37px;border:0;border-radius:50%;background:transparent;color:#a3b2bf}
+.header-action:hover{background:#263746;color:#fff}
+.message-area{padding:18px clamp(18px,6vw,105px) 18px;background:#0e1621}
+.message-date{background:#1d2b38;border:0;border-radius:12px;color:#a7b5c1;font-size:10px;letter-spacing:0;padding:5px 11px}
+.message-row{max-width:min(76%,660px);gap:7px}
+.message-avatar{width:26px;height:26px;border-radius:50%}
+.message-bubble{background:#182533;border:0;border-radius:11px 11px 11px 3px;padding:8px 11px 5px;color:#edf2f6;font-size:13px;box-shadow:none}
+.message-row.mine .message-bubble{background:#2b5278;border:0;border-radius:11px 11px 3px 11px}
+.message-sender{font-size:11px;color:#7db8e8}
+.message-meta{font-size:9px;color:#8798a6}
+.message-row.mine .message-meta{color:#c2d9ec}
+.composer{display:flex;align-items:flex-end;gap:9px;margin:0;padding:8px 13px max(10px,env(safe-area-inset-bottom));border:0;border-top:1px solid #243442;border-radius:0;background:#17212b;box-shadow:none}
+.composer-decoration{display:none}
+.composer textarea{flex:1;min-width:0;width:100%;background:transparent;color:#eef3f7;font-size:14px;padding:9px 3px 5px;min-height:39px}
+.composer textarea::placeholder{color:#8999a7}
+.composer-bottom{padding:0;display:contents}
+.composer-bottom>span{display:none}
+.send-button{width:38px;height:38px;min-width:38px;border-radius:50%;background:#5288c1;color:#fff;font-size:16px}
+#profile-modal .modal-card{background:#202c38;border:1px solid #30404f;border-radius:12px;max-width:420px}
+#profile-modal .modal-card h2{color:#f1f5f8;text-align:center}
+#profile-modal .avatar-editor{background:#17232e;border-color:#2a3a49}
+.modal-card{background:#17212b;border-color:#304252}
+.modal-close{color:#aab7c2}
+.toast{background:#263746;border-color:#3d566a}
+.telegram-drawer-backdrop{position:fixed;inset:0;z-index:30;background:#0009;backdrop-filter:blur(1px)}
+.telegram-drawer{height:100%;width:min(294px,86vw);background:#17212b;box-shadow:15px 0 45px #0007;display:flex;flex-direction:column;padding:0 0 14px}
+.telegram-drawer-account{padding:23px 20px 18px;background:#1b2936;border-bottom:1px solid #293946}
+.telegram-drawer-account-label{font-size:10px;color:#91a4b3;letter-spacing:1.2px;font-weight:700;margin-bottom:18px}
+#telegram-status{font-size:12px;color:#6fa9d7;margin-bottom:12px}
+.telegram-profile-slot .profile-mini{display:flex;gap:11px;align-items:center;width:100%;border:0;background:transparent;color:#eef3f7;padding:5px 0;text-align:left}
+.telegram-profile-slot .avatar{width:47px;height:47px;border-radius:50%}
+.telegram-profile-slot .profile-mini-text strong{font-size:14px;color:#edf3f7}
+.telegram-profile-slot .profile-mini-text small{font-size:11px;color:#9eafbd}
+.telegram-drawer-items{padding:7px 0;display:flex;flex-direction:column}
+.telegram-drawer-items>button{height:48px;flex-shrink:0;border:0;background:transparent;color:#c7d2dc;text-align:left;padding:0 22px;display:flex;align-items:center;gap:19px;font-size:19px}
+.telegram-drawer-items>button span{font-size:13px}
+.telegram-drawer-items>button:hover{background:#223443;color:#fff}
+.telegram-drawer-divider{height:1px;background:#293946;margin:8px 0}
+.telegram-theme-switch{margin-left:auto;width:33px;height:18px;border-radius:12px;background:#5288c1;position:relative}
+.telegram-theme-switch:after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;background:#fff;border-radius:50%}
+.telegram-emoji-picker{position:fixed;z-index:25;right:22px;bottom:78px;width:min(340px,calc(100vw - 24px));max-height:390px;display:flex;flex-direction:column;background:#25313d;border:1px solid #435261;border-radius:13px;box-shadow:0 18px 50px #0009;padding:0 10px 11px}
+.telegram-emoji-picker header{height:45px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #3b4b59}
+.telegram-emoji-tabs{display:flex;gap:13px;height:100%}
+.telegram-emoji-tabs button{border:0;border-bottom:2px solid transparent;background:transparent;color:#aab8c4;font-size:11px;padding:0 5px}
+.telegram-emoji-tabs button.active{color:#f3f6f8;border-bottom-color:#65a1d6}
+#telegram-emoji-close{border:0;background:transparent;color:#aab8c4;font-size:24px;width:30px;height:35px}
+#telegram-emoji-search{height:34px;flex-shrink:0;margin:10px 0;border:1px solid #4a5a68;border-radius:18px;background:#1c2934;color:#eef3f7;padding:0 12px;outline:0;font-size:12px}
+#telegram-emoji-search::placeholder{color:#96a6b3}
+.telegram-emoji-grid{min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px}
+.telegram-emoji-grid button{height:36px;border:0;border-radius:7px;background:transparent;font-size:22px;display:grid;place-items:center}
+.telegram-emoji-grid button:hover{background:#40505e}
+#telegram-emoji-empty{padding:24px 12px;text-align:center;color:#a9b6c1;font-size:12px}
+.telegram-composer-emoji{width:34px;height:38px;flex:0 0 34px;border:0;background:transparent;color:#9aaebb;font-size:22px;border-radius:50%}
+.telegram-composer-emoji:hover{background:#263746;color:#fff}
+.app.telegram-light-theme{--tg-bg:#e8edf2}
+.app.telegram-light-theme .telegram-rail,.app.telegram-light-theme .sidebar,.app.telegram-light-theme .chat-header,.app.telegram-light-theme .composer{background:#fff;color:#263744;border-color:#dce4ea}
+.app.telegram-light-theme .workspace,.app.telegram-light-theme .welcome-screen,.app.telegram-light-theme .message-area{background:#e8edf2;color:#263744}
+.app.telegram-light-theme .sidebar .list-heading h2,.app.telegram-light-theme .chat-heading h2,.app.telegram-light-theme .welcome-screen h1{color:#263744}
+.app.telegram-light-theme .conversation-name{color:#263744}
+.app.telegram-light-theme .conversation-item.active{background:#d4e6f5}
+.app.telegram-light-theme .message-bubble{background:#fff;color:#263744}
+.app.telegram-light-theme .message-row.mine .message-bubble{background:#d5e8f6;color:#263744}
+@media(max-width:760px){.app{grid-template-columns:minmax(0,1fr)}.telegram-rail{display:none}.sidebar{border-right:0}.sidebar .list-heading{padding-top:14px}.workspace{display:none}.app.show-chat .sidebar{display:none}.app.show-chat .workspace{display:block}.message-area{padding:14px 12px}.message-row{max-width:90%}.composer{margin:0;padding:8px 8px max(10px,env(safe-area-inset-bottom))}.telegram-drawer{width:min(290px,88vw)}}
