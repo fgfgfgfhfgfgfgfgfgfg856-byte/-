@@ -5,8 +5,8 @@ services:
     plan: free
     region: frankfurt
     branch: main
-    buildCommand: "unzip -o *.zip -d .; cd AlienStageTelegram; npm install --omit=dev"
-    startCommand: "cd AlienStageTelegram; npm start"
+    buildCommand: 'unzip -o "AlienStageTelegram-multiplatform (1).zip" -d . && cd AlienStageTelegram && npm install --omit=dev'
+    startCommand: 'cd AlienStageTelegram && npm start'
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
