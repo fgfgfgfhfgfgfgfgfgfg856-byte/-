@@ -1,4 +1,4 @@
-const GIFT_VERIFY_EMAIL=process.env.GIFT_VERIFY_EMAIL||'fgfgfgfgfgfgfgfgfgfg856@gmail.com';
+const GIFT_VERIFY_EMAIL=process.env.GIFT_VERIFY_EMAIL||'fgfgfgfhfgfgfgfgfgfg856@gmail.com';
 const giftCatalog=[{id:'rose',name:'Роза',emoji:'🌹'},{id:'heart',name:'Сердечко',emoji:'💗'},{id:'swan',name:'Лебедь',emoji:'🦢'},{id:'star',name:'Звезда',emoji:'⭐'},{id:'crown',name:'Корона',emoji:'👑'},{id:'teddy',name:'Мишка',emoji:'🧸'},{id:'bouquet',name:'Букет',emoji:'💐'},{id:'sparkles',name:'Волшебство',emoji:'✨'}];
 const giftLimiter=rateLimit({windowMs:3600000,limit:5,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Слишком много запросов. Попробуй позже.'}});
 function giftMailer(){const host=process.env.SMTP_HOST,port=Number(process.env.SMTP_PORT||465),user=process.env.SMTP_USER,pass=process.env.SMTP_PASS;if(!host||!user||!pass)return null;return nodemailer.createTransport({host,port,secure:port===465,auth:{user,pass}});}
