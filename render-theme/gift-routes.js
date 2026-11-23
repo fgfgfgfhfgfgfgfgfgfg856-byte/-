@@ -1,26 +1,47 @@
 const GIFT_VERIFY_EMAIL=process.env.GIFT_VERIFY_EMAIL||'fgfgfgfhfgfgfgfgfgfg856@gmail.com';
-const giftCatalog=[{id:'rose',name:'Роза',emoji:'🌹'},{id:'heart',name:'Сердечко',emoji:'💗'},{id:'swan',name:'Лебедь',emoji:'🦢'},{id:'star',name:'Звезда',emoji:'⭐'},{id:'crown',name:'Корона',emoji:'👑'},{id:'teddy',name:'Мишка',emoji:'🧸'},{id:'bouquet',name:'Букет',emoji:'💐'},{id:'sparkles',name:'Волшебство',emoji:'✨'}];
+const giftCatalog=[
+ {id:'rose',name:'Роза',emoji:'🌹',models:['Алый бутон','Золотая роза','Лунный цветок','Кристальная роза']},
+ {id:'heart',name:'Сердечко',emoji:'💗',models:['Первое чувство','Неоновое сердце','Сердце галактики','Розовый кристалл']},
+ {id:'swan',name:'Лебедь',emoji:'🦢',models:['Белый лебедь','Лебедь из жемчуга','Лунный лебедь','Звёздное перо']},
+ {id:'star',name:'Звезда',emoji:'⭐',models:['Падающая звезда','Золотая звезда','Космическая звезда','Полярный свет']},
+ {id:'crown',name:'Корона',emoji:'👑',models:['Королевский сапфир','Золотая корона','Ледяной трон','Корона созвездий']},
+ {id:'teddy',name:'Мишка',emoji:'🧸',models:['Плюшевый мишка','Медовый мишка','Мишка-соня','Мишка галактика']},
+ {id:'bouquet',name:'Букет',emoji:'💐',models:['Весенний букет','Сад мечты','Букет фей','Цветы полуночи']},
+ {id:'sparkles',name:'Волшебство',emoji:'✨',models:['Звёздная пыль','Лунная магия','Космический свет','Золотое сияние']}
+];
+const giftBackdrops=[
+ {name:'Розовый шёлк',hex:'#d783ac'},{name:'Лавандовый туман',hex:'#937cce'},
+ {name:'Ледяной голубой',hex:'#65a9d1'},{name:'Изумрудный',hex:'#469b88'},
+ {name:'Золотой',hex:'#b78a43'},{name:'Полночь',hex:'#344a76'},
+ {name:'Персиковый',hex:'#d58d70'},{name:'Северное сияние',hex:'#426c83'}
+];
+const giftSymbols=['✦','❀','♡','☾','✧','♛','✺','❄'];
+const giftRarities=[
+ {name:'Обычный',chance:70,percent:'70%'},{name:'Редкий',chance:22,percent:'22%'},
+ {name:'Эпический',chance:7,percent:'7%'},{name:'Легендарный',chance:1,percent:'1%'}
+];
 const giftLimiter=rateLimit({windowMs:3600000,limit:5,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Слишком много запросов. Попробуй позже.'}});
+function chooseGiftItem(items){return items[crypto.randomInt(0,items.length)];}
+function chooseGiftRarity(){const roll=crypto.randomInt(0,100);let edge=0;for(const rarity of giftRarities){edge+=rarity.chance;if(roll<edge)return rarity;}return giftRarities[0];}
 function giftMailer(){const host=process.env.SMTP_HOST,port=Number(process.env.SMTP_PORT||465),user=process.env.SMTP_USER,pass=process.env.SMTP_PASS;if(!host||!user||!pass)return null;return nodemailer.createTransport({host,port,secure:port===465,auth:{user,pass}});}
+function publicGift(row){return {...row,gift:giftCatalog.find(g=>g.id===row.gift_id)||null};}
 app.get('/api/gifts/catalog',auth,(_req,res)=>res.json({gifts:giftCatalog}));
 app.get('/api/gifts/received',auth,(req,res)=>{
- const rows=db.prepare('SELECT g.id,g.gift_id,g.note,g.created_at,u.username,u.display_name FROM user_gifts g JOIN users u ON u.id=g.sender_id WHERE g.recipient_id=? ORDER BY g.created_at DESC LIMIT 100').all(req.user.id);
- res.json({gifts:rows.map(x=>({...x,gift:giftCatalog.find(g=>g.id===x.gift_id)||null}))});
+ const rows=db.prepare('SELECT g.*,u.username AS sender_username,u.display_name AS sender_display_name FROM user_gifts g JOIN users u ON u.id=g.sender_id WHERE g.recipient_id=? ORDER BY g.created_at DESC LIMIT 100').all(req.user.id);
+ res.json({gifts:rows.map(publicGift)});
 });
 app.patch('/api/me/profile-gift',auth,(req,res)=>{
- const giftId=req.body.gift_id===null||req.body.gift_id===''?null:String(req.body.gift_id);
- if(giftId&&!giftCatalog.some(g=>g.id===giftId))return res.status(400).json({error:'Такого подарка нет.'});
- if(giftId&&!db.prepare('SELECT 1 FROM user_gifts WHERE recipient_id=? AND gift_id=? LIMIT 1').get(req.user.id,giftId))return res.status(403).json({error:'Можно поставить только подарок, который ты действительно получил.'});
- db.prepare('UPDATE users SET profile_gift_id=? WHERE id=?').run(giftId,req.user.id);
- res.json({ok:true,profile_gift_id:giftId});
+ const itemId=req.body.gift_item_id===null||req.body.gift_item_id===''?null:String(req.body.gift_item_id);
+ if(itemId&&!db.prepare('SELECT 1 FROM user_gifts WHERE id=? AND recipient_id=?').get(itemId,req.user.id))return res.status(403).json({error:'Можно поставить только подарок, который ты действительно получил.'});
+ db.prepare('UPDATE users SET profile_gift_item_id=? WHERE id=?').run(itemId,req.user.id);
+ res.json({ok:true,profile_gift_item_id:itemId});
 });
 app.get('/api/users/:id/profile',auth,(req,res)=>{
- const user=db.prepare('SELECT id,username,display_name,avatar_path,created_at,profile_gift_id FROM users WHERE id=?').get(String(req.params.id));
+ const user=db.prepare('SELECT * FROM users WHERE id=?').get(String(req.params.id));
  if(!user)return res.status(404).json({error:'Пользователь не найден.'});
- const rows=db.prepare('SELECT gift_id,COUNT(*) AS count,MAX(created_at) AS last_received FROM user_gifts WHERE recipient_id=? GROUP BY gift_id ORDER BY last_received DESC').all(user.id);
- const gifts=rows.map(row=>({...row,gift:giftCatalog.find(g=>g.id===row.gift_id)||null}));
- const featuredGift=gifts.find(x=>x.gift_id===user.profile_gift_id)?.gift||null;
- res.json({user:publicUser(user),gifts,featured_gift:featuredGift});
+ const gifts=db.prepare('SELECT g.*,u.username AS sender_username,u.display_name AS sender_display_name FROM user_gifts g JOIN users u ON u.id=g.sender_id WHERE g.recipient_id=? ORDER BY g.created_at DESC LIMIT 100').all(user.id).map(publicGift);
+ const featured=gifts.find(g=>g.id===user.profile_gift_item_id)||null;
+ res.json({user:publicUser(user),gifts,featured_gift:featured});
 });
 app.post('/api/gifts/send-code',auth,giftLimiter,async(req,res)=>{
  const username=String(req.body.username||'').trim().replace(/^@/,'');
@@ -45,8 +66,14 @@ app.post('/api/gifts/confirm',auth,giftLimiter,(req,res)=>{
  if(row.attempts>=5){db.prepare('DELETE FROM gift_verifications WHERE id=?').run(id);return res.status(429).json({error:'Слишком много неверных попыток. Запроси новый код.'});}
  const a=Buffer.from(crypto.createHash('sha256').update(id+':'+code).digest('hex'),'hex'),b=Buffer.from(row.code_hash,'hex');
  if(a.length!==b.length||!crypto.timingSafeEqual(a,b)){db.prepare('UPDATE gift_verifications SET attempts=attempts+1 WHERE id=?').run(id);return res.status(400).json({error:'Неверный код. Проверь письмо.'});}
- const gift=giftCatalog.find(x=>x.id===row.gift_id),giftRowId=crypto.randomUUID();
- db.transaction(()=>{db.prepare('INSERT INTO user_gifts (id,sender_id,recipient_id,gift_id,note) VALUES (?,?,?,?,?)').run(giftRowId,row.sender_id,row.recipient_id,row.gift_id,row.note);db.prepare('DELETE FROM gift_verifications WHERE id=?').run(id);})();
- io.to('user:'+row.recipient_id).emit('gift:received',{id:giftRowId,gift_id:row.gift_id});
- res.status(201).json({ok:true,gift});
+ const gift=giftCatalog.find(x=>x.id===row.gift_id),model=chooseGiftItem(gift.models),backdrop=chooseGiftItem(giftBackdrops),symbol=chooseGiftItem(giftSymbols),rarity=chooseGiftRarity(),giftRowId=crypto.randomUUID();
+ const serial=db.prepare('SELECT COALESCE(MAX(serial_number),0)+1 AS next FROM user_gifts WHERE gift_id=?').get(row.gift_id).next;
+ db.transaction(()=>{
+  db.prepare('INSERT INTO user_gifts (id,sender_id,recipient_id,gift_id,note,serial_number,model_name,backdrop_name,backdrop_hex,symbol,rarity) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+   .run(giftRowId,row.sender_id,row.recipient_id,row.gift_id,row.note,serial,model,backdrop.name,backdrop.hex,symbol,rarity.name);
+  db.prepare('DELETE FROM gift_verifications WHERE id=?').run(id);
+ })();
+ const collectible={id:giftRowId,gift_id:row.gift_id,serial_number:serial,model_name:model,backdrop_name:backdrop.name,backdrop_hex:backdrop.hex,symbol,rarity:rarity.name};
+ io.to('user:'+row.recipient_id).emit('gift:received',collectible);
+ res.status(201).json({ok:true,gift,collectible});
 });
