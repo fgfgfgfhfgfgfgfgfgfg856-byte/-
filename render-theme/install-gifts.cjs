@@ -12,6 +12,9 @@ if(!s.includes('CREATE TABLE IF NOT EXISTS gift_verifications')){
 const publicUserOld="return { id: user.id, username: user.username, display_name: user.display_name, avatar_url: user.avatar_path || null, created_at: user.created_at };";
 const publicUserNew="return { id: user.id, username: user.username, display_name: user.display_name, avatar_url: user.avatar_path || null, created_at: user.created_at, profile_gift_id: user.profile_gift_id || null, profile_gift_emoji: (user.profile_gift_id && typeof giftCatalog !== 'undefined' ? giftCatalog.find(g => g.id === user.profile_gift_id)?.emoji : null) || null };";
 if(s.includes(publicUserOld))s=s.replace(publicUserOld,publicUserNew);
+const searchSelect='SELECT id, username, display_name, avatar_path, created_at FROM users';
+const searchSelectWithGift='SELECT id, username, display_name, avatar_path, created_at, profile_gift_id FROM users';
+if(s.includes(searchSelect))s=s.replace(searchSelect,searchSelectWithGift);
 if(!s.includes("app.post('/api/gifts/send-code'")){
  const routes=fs.readFileSync(path.join(__dirname,'gift-routes.js'),'utf8');
  s=s.replace("app.get('/api/health',",routes+"\napp.get('/api/health',");
