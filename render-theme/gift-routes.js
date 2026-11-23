@@ -11,7 +11,6 @@ app.post('/api/gifts/send-code',auth,giftLimiter,async(req,res)=>{
  if(!gift)return res.status(400).json({error:'Выбери подарок.'});
  const recipient=db.prepare('SELECT id,username FROM users WHERE username=? COLLATE NOCASE').get(username);
  if(!recipient)return res.status(404).json({error:'Такого пользователя нет. Он должен сначала зарегистрироваться.'});
- if(recipient.id===req.user.id)return res.status(400).json({error:'Нельзя подарить подарок самому себе.'});
  const mailer=giftMailer();if(!mailer)return res.status(503).json({error:'Почта ещё не подключена. Владелец сайта должен добавить SMTP_HOST, SMTP_PORT, SMTP_USER и SMTP_PASS в Render.'});
  const code=String(crypto.randomInt(0,1000000)).padStart(6,'0'),id=crypto.randomUUID(),hash=crypto.createHash('sha256').update(id+':'+code).digest('hex');
  db.prepare('DELETE FROM gift_verifications WHERE expires_at<? OR sender_id=?').run(Date.now(),req.user.id);
