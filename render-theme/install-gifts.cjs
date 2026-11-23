@@ -6,15 +6,12 @@ let s=fs.readFileSync(serverPath,'utf8');
 if(!s.includes("const nodemailer = require('nodemailer');"))s=s.replace("require('dotenv').config();","require('dotenv').config();\nconst nodemailer = require('nodemailer');");
 if(!s.includes('CREATE TABLE IF NOT EXISTS gift_verifications')){
  const schema="db.exec(\"CREATE TABLE IF NOT EXISTS gift_verifications (id TEXT PRIMARY KEY,sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,recipient_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,gift_id TEXT NOT NULL,note TEXT NOT NULL DEFAULT '',code_hash TEXT NOT NULL,expires_at INTEGER NOT NULL,attempts INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS user_gifts (id TEXT PRIMARY KEY,sender_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,recipient_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,gift_id TEXT NOT NULL,note TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))); CREATE INDEX IF NOT EXISTS idx_user_gifts_recipient ON user_gifts(recipient_id,created_at);\");";
- const migration="const userColumns=db.prepare('PRAGMA table_info(users)').all(); if(!userColumns.some(column=>column.name==='profile_gift_id'))db.exec('ALTER TABLE users ADD COLUMN profile_gift_id TEXT');";
- s=s.replace('const app = express();',schema+'\n'+migration+'\nconst app = express();');
-}
-const publicUserOld="return { id: user.id, username: user.username, display_name: user.display_name, avatar_url: user.avatar_path || null, created_at: user.created_at };";
-const publicUserNew="return { id: user.id, username: user.username, display_name: user.display_name, avatar_url: user.avatar_path || null, created_at: user.created_at, profile_gift_id: user.profile_gift_id || null, profile_gift_emoji: (user.profile_gift_id && typeof giftCatalog !== 'undefined' ? giftCatalog.find(g => g.id === user.profile_gift_id)?.emoji : null) || null };";
-if(s.includes(publicUserOld))s=s.replace(publicUserOld,publicUserNew);
-const searchSelect='SELECT id, username, display_name, avatar_path, created_at FROM users';
-const searchSelectWithGift='SELECT id, username, display_name, avatar_path, created_at, profile_gift_id FROM users';
-if(s.includes(searchSelect))s=s.replace(searchSelect,searchSelectWithGift);
+ const migration="const userGiftColumns=db.prepare('PRAGMA table_info(user_gifts)').all().map(column=>column.name);
+const userGiftMigrations={serial_number:'INTEGER NOT NULL DEFAULT 1',model_name:"TEXT NOT NULL DEFAULT ''",backdrop_name:"TEXT NOT NULL DEFAULT 'Классический'",backdrop_hex:"TEXT NOT NULL DEFAULT '#5288c1'",symbol:"TEXT NOT NULL DEFAULT '✦'",rarity:"TEXT NOT NULL DEFAULT 'Обычный'"};
+for(const [column,definition] of Object.entries(userGiftMigrations)){if(!userGiftColumns.includes(column))db.exec('ALTER TABLE user_gifts ADD COLUMN '+column+' '+definition);}
+const userColumns=db.prepare('PRAGMA table_info(users)').all().map(column=>column.name);
+if(!userColumns.includes('profile_gift_id'))db.exec('ALTER TABLE users ADD COLUMN profile_gift_id TEXT');
+if(!userColumns.includes('profile_gift_item_id'))db.exec('ALTER TABLE users ADD COLUMN profile_gift_item_id TEXT');
 if(!s.includes("app.post('/api/gifts/send-code'")){
  const routes=fs.readFileSync(path.join(__dirname,'gift-routes.js'),'utf8');
  s=s.replace("app.get('/api/health',",routes+"\napp.get('/api/health',");
