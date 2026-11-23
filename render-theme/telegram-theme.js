@@ -40,6 +40,7 @@
   }
 
   const closeDrawer = () => drawer.classList.add('hidden');
+  profile?.addEventListener('click', closeDrawer);
   $('#telegram-menu-open').addEventListener('click', () => drawer.classList.remove('hidden'));
   drawer.addEventListener('click', event => { if (event.target === drawer) closeDrawer(); });
   $('#telegram-profile-action').addEventListener('click', () => { closeDrawer(); $('#profile-open')?.click(); });
