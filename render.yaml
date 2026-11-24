@@ -21,6 +21,8 @@ services:
           property: connectionString
       - key: EMAIL_FROM
         value: "AlienStageTelegram <onboarding@resend.dev>"
+      - key: RESEND_API_KEY
+        sync: false
       - key: UNLIMITED_TOKENS_EMAIL
         value: "fgfgfgfhfgfgfgfgfgfg856@gmail.com"
       - key: STARTER_TOKENS
