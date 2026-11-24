@@ -217,3 +217,234 @@ if (html.includes('id="auth-email"') || html.includes('id="email-gate-modal"') |
 fs.writeFileSync(serverPath, server, 'utf8');
 fs.writeFileSync(htmlPath, html, 'utf8');
 console.log('OK: регистрация без email, вход по нику и паролю, подарки без email, Express 5 и /health исправлены.');
+
+
+// --- Instant account: auto-create on first visit, then ask only for a nickname. ---
+let instantServer = fs.readFileSync(serverPath, 'utf8');
+let instantHtml = fs.readFileSync(htmlPath, 'utf8');
+
+if (!instantServer.includes('ADD COLUMN IF NOT EXISTS needs_username_change')) {
+  instantServer = instantServer.replace(
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;',
+    'ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;\n    ALTER TABLE users ADD COLUMN IF NOT EXISTS needs_username_change BOOLEAN NOT NULL DEFAULT FALSE;'
+  );
+}
+if (!instantServer.includes('needs_username_change FROM users WHERE id = $1')) {
+  instantServer = instantServer.replace(
+    /SELECT id, phone_hash, username, display_name, email, email_verified, token_balance, featured_gift_uid, avatar_data, created_at(?:, last_seen_at)? FROM users WHERE id = \$1/,
+    (match) => match.replace(' FROM users', ', needs_username_change FROM users')
+  );
+}
+if (!instantServer.includes("app.post('/api/auth/guest'")) {
+  const health = "app.get('/health', (_req, res) => res.json({ ok: true, service: 'AlienStageTelegram' }));";
+  if (!instantServer.includes(health)) throw new Error('Instant account: /health route was not found.');
+  const guest = [
+    '',
+    "app.post('/api/auth/guest', authLimiter, async (_req, res, next) => {",
+    '  try {',
+    "    let username = '';",
+    '    for (let i = 0; i < 5; i += 1) {',
+    "      username = 'guest_' + crypto.randomBytes(5).toString('hex');",
+    "      const exists = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);",
+    "      if (!exists.rowCount) break;",
+    "      username = '';",
+    '    }',
+    "    if (!username) throw new Error('Не удалось создать временный ник. Попробуй ещё раз.');",
+    '    const id = crypto.randomUUID();',
+    "    const displayName = 'Новый пользователь';",
+    "    await pool.query('INSERT INTO users (id, phone_hash, username, display_name, email, email_verified, password_hash, needs_username_change, token_balance) VALUES ($1, NULL, $2, $3, NULL, FALSE, NULL, TRUE, $4)', [id, username, displayName, Math.max(0, Number(process.env.STARTER_TOKENS || 100))]);",
+    '    setSession(res, { id, username, displayName });',
+    '    res.status(201).json({ ok: true, needsUsernameChange: true });',
+    '  } catch (error) { next(error); }',
+    '});'
+  ].join('\n');
+  instantServer = instantServer.replace(health, health + '\n' + guest);
+}
+if (!instantServer.includes('needsUsernameChange: req.user.needs_username_change')) {
+  instantServer = instantServer.replace(
+    'displayName: req.user.display_name, email:',
+    'displayName: req.user.display_name, needsUsernameChange: req.user.needs_username_change, email:'
+  );
+}
+if (!instantServer.includes("app.patch('/api/me/username'")) {
+  const anchor = "app.patch('/api/me', requireAuth, async (req, res, next) => {";
+  if (!instantServer.includes(anchor)) throw new Error('Instant account: PATCH /api/me route was not found.');
+  const renameRoute = [
+    "app.patch('/api/me/username', requireAuth, async (req, res, next) => {",
+    '  try {',
+    '    const username = cleanUsername(req.body.username);',
+    "    if (!validUsername(username)) return res.status(400).json({ error: 'Ник должен быть 3–20 символов: латинские буквы, цифры и _.' });",
+    '    try {',
+    "      await pool.query('UPDATE users SET username = $1, display_name = $1, needs_username_change = FALSE WHERE id = $2', [username, req.user.id]);",
+    '    } catch (error) {',
+    "      if (error.code === '23505') return res.status(409).json({ error: 'Этот ник уже занят. Попробуй другой.' });",
+    '      throw error;',
+    '    }',
+    '    res.json({ ok: true, username, displayName: username });',
+    '  } catch (error) { next(error); }',
+    '});',
+    ''
+  ].join('\n');
+  instantServer = instantServer.replace(anchor, renameRoute + anchor);
+}
+
+// Replace the login/register screen with an automatic account setup message.
+const authStart = instantHtml.indexOf('  <div id="auth-screen" class="auth-screen">');
+const appStart = instantHtml.indexOf('\n\n  <div id="app"', authStart);
+if (authStart < 0 || appStart < 0) throw new Error('Instant account: auth screen markup not found.');
+const authScreen = [
+  '  <div id="auth-screen" class="auth-screen">',
+  '    <div class="auth-orbit orbit-one"></div><div class="auth-orbit orbit-two"></div>',
+  '    <section class="auth-card">',
+  '      <div class="brand-mark brand-large"><span>✦</span></div>',
+  '      <div class="brand-name">ALIEN<span>STAGE</span>TELEGRAM</div>',
+  '      <p class="auth-subtitle">Твоя связь с другой орбитой</p>',
+  '      <p style="text-align:center;color:var(--muted);font-size:13px;line-height:1.7">Создаём твой аккаунт…<br><strong style="color:var(--pink)">Останется только выбрать никнейм ✨</strong></p>',
+  '      <p id="auth-error" class="form-error" role="alert" style="text-align:center;margin-top:14px"></p>',
+  '    </section>',
+  '    <div class="auth-footer">ALIENSTAGE TELEGRAM <span>•</span> SPACE FOR YOUR WORDS</div>',
+  '  </div>'
+].join('\n');
+instantHtml = instantHtml.slice(0, authStart) + authScreen + instantHtml.slice(appStart);
+
+// Insert the only required first-run form: choose a nickname.
+if (!instantHtml.includes('id="nickname-setup-modal"')) {
+  const giftModal = '  <div id="gift-modal" class="modal-backdrop hidden"';
+  if (!instantHtml.includes(giftModal)) throw new Error('Instant account: gift modal anchor was not found.');
+  const modal = [
+    '  <div id="nickname-setup-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="nickname-setup-title">',
+    '    <section class="modal-card" style="width:min(420px,100%)">',
+    '      <div class="brand-mark" style="margin-bottom:14px"><span>✦</span></div>',
+    '      <span class="eyebrow">ТВОЯ НОВАЯ ОРБИТА</span>',
+    '      <h2 id="nickname-setup-title">Аккаунт уже создан! 💗</h2>',
+    '      <p style="color:var(--muted);font-size:12px;line-height:1.6;margin:-5px 0 18px">Придумай никнейм, по которому друзья смогут найти тебя. Почта, телефон и пароль не нужны.</p>',
+    '      <form id="nickname-setup-form">',
+    '        <div class="form-field">',
+    '          <label for="nickname-setup-input">Твой никнейм</label>',
+    '          <div class="input-prefix"><span>@</span><input id="nickname-setup-input" minlength="3" maxlength="20" required placeholder="your_nickname" autocomplete="off" autocapitalize="none" spellcheck="false"></div>',
+    '          <small>3–20 символов: латинские буквы, цифры и _</small>',
+    '        </div>',
+    '        <p id="nickname-setup-error" class="form-error" role="alert"></p>',
+    '        <button id="nickname-setup-submit" class="btn btn-primary auth-submit" type="submit">Сохранить никнейм <span>↗</span></button>',
+    '      </form>',
+    '      <p style="color:var(--soft);font-size:10px;line-height:1.5;margin:14px 0 0">Аккаунт привязан к этому браузеру. Не очищай данные сайта и не используй режим инкогнито, иначе доступ можно потерять.</p>',
+    '    </section>',
+    '  </div>',
+    ''
+  ].join('\n');
+  instantHtml = instantHtml.replace(giftModal, modal + giftModal);
+}
+if (!instantHtml.includes('#nickname-setup-modal .modal-card')) {
+  instantHtml = instantHtml.replace(
+    '</style>',
+    '#nickname-setup-modal .modal-card{border-color:#8d6db0;box-shadow:0 25px 90px #07040dcc,0 0 45px #c37bd52a}\n#nickname-setup-modal .brand-mark{background:linear-gradient(145deg,#ef85c7,#9478ff 62%,#6bd8e3);color:#171222}\n#nickname-setup-input{text-transform:none}\n</style>'
+  );
+}
+if (!instantHtml.includes("$('#nickname-setup-modal').addEventListener('click'")) {
+  const showAuth = "  const showAuth = () => { $('#auth-screen').classList.remove('hidden'); $('#app').classList.add('hidden'); };";
+  instantHtml = instantHtml.replace(
+    showAuth,
+    "$('#nickname-setup-modal').addEventListener('click', (event) => { if (event.target === event.currentTarget) { event.preventDefault(); event.stopImmediatePropagation(); } });\n" + showAuth
+  );
+}
+if (!instantHtml.includes('const openNicknameSetup = () =>')) {
+  const refresh = '  const refreshMe = async () => {';
+  const helper = [
+    '  const openNicknameSetup = () => {',
+    '    if (!currentUser?.needsUsernameChange) return;',
+    "    $('#nickname-setup-input').value = '';",
+    "    $('#nickname-setup-error').textContent = '';",
+    "    $('#nickname-setup-modal').classList.remove('hidden');",
+    "    window.setTimeout(() => $('#nickname-setup-input').focus(), 80);",
+    '  };',
+    ''
+  ].join('\n');
+  instantHtml = instantHtml.replace(refresh, helper + refresh);
+}
+
+// Remove old password form handlers and login/register controls.
+const oldAuthHandler = instantHtml.indexOf("  $('#auth-form').addEventListener('submit'");
+if (oldAuthHandler >= 0) {
+  const giftTabs = instantHtml.indexOf("  $$('[data-gift-tab]').forEach", oldAuthHandler);
+  if (giftTabs < 0) throw new Error('Instant account: could not locate the end of the old auth handler.');
+  instantHtml = instantHtml.slice(0, oldAuthHandler) + instantHtml.slice(giftTabs);
+}
+instantHtml = instantHtml.replace("  let authMode = 'login';\n", '');
+instantHtml = instantHtml.replace(/  const setAuthMode = \(mode\) => \{[\s\S]*?\n  \};\n/, '');
+instantHtml = instantHtml.replace(/^\s*\$\('#(?:login|register)-tab'\)\.addEventListener\([^\n]*\);\s*$/gm, '');
+
+// The nickname form saves the chosen public username and finishes onboarding.
+if (!instantHtml.includes("$('#nickname-setup-form').addEventListener('submit'")) {
+  const giftTabs = "  $$('[data-gift-tab]').forEach((button) => button.addEventListener('click', () => setGiftTab(button.dataset.giftTab)));";
+  const handler = [
+    "  $('#nickname-setup-form').addEventListener('submit', async (event) => {",
+    '    event.preventDefault();',
+    "    const button = $('#nickname-setup-submit');",
+    "    const username = $('#nickname-setup-input').value.trim();",
+    "    $('#nickname-setup-error').textContent = '';",
+    '    button.disabled = true;',
+    '    try {',
+    "      await api('/api/me/username', { method: 'PATCH', body: JSON.stringify({ username }) });",
+    '      await refreshMe();',
+    "      $('#nickname-setup-modal').classList.add('hidden');",
+    "      toast('Твой никнейм сохранён! Добро пожаловать 🪐');",
+    '    } catch (error) {',
+    "      $('#nickname-setup-error').textContent = error.message;",
+    "      $('#nickname-setup-input').focus();",
+    '    } finally { button.disabled = false; }',
+    '  });',
+    ''
+  ].join('\n');
+  instantHtml = instantHtml.replace(giftTabs, handler + giftTabs);
+}
+
+// Do not clear the only session cookie for a passwordless guest account.
+instantHtml = instantHtml.replace(/  async function logout\(\) \{[\s\S]*?\n  \}/, [
+  '  async function logout() {',
+  "    toast('Аккаунт привязан к этому браузеру. Выход отключён, чтобы не потерять доступ.');",
+  "    $('#app-menu-backdrop').classList.add('hidden');",
+  '  }'
+].join('\n'));
+instantHtml = instantHtml.replace('↪ <span>Выйти</span>', '↪ <span>Информация об аккаунте</span>');
+instantHtml = instantHtml.replace('id="logout-btn">Выйти</button>', 'id="logout-btn">Аккаунт привязан к браузеру</button>');
+
+// Reuse the existing session, or create a guest automatically if this browser has none.
+instantHtml = instantHtml.replace(/^\s*setAuthMode\('login'\);\s*$/gm, '');
+const bootStart = instantHtml.lastIndexOf('  (async () => {');
+const wrapperEnd = instantHtml.lastIndexOf('\n})();');
+if (bootStart < 0 || wrapperEnd < bootStart) throw new Error('Instant account: initial app boot block was not found.');
+const guestBoot = [
+  '  (async () => {',
+  '    try {',
+  '      try { await enterApp(); }',
+  '      catch (error) {',
+  '        if (error.status !== 401) throw error;',
+  "        await api('/api/auth/guest', { method: 'POST', body: '{}' });",
+  '        await enterApp();',
+  '      }',
+  '      openNicknameSetup();',
+  '    } catch (error) {',
+  '      showAuth();',
+  "      $('#auth-error').textContent = 'Не удалось создать аккаунт: ' + error.message;",
+  '    }',
+  '  })();'
+].join('\n');
+instantHtml = instantHtml.slice(0, bootStart) + guestBoot + instantHtml.slice(wrapperEnd);
+
+const checks = {
+  guestRoute: instantServer.includes("app.post('/api/auth/guest'"),
+  renameRoute: instantServer.includes("app.patch('/api/me/username'"),
+  schema: instantServer.includes('ADD COLUMN IF NOT EXISTS needs_username_change'),
+  meFlag: instantServer.includes('needsUsernameChange: req.user.needs_username_change'),
+  guestBoot: instantHtml.includes("api('/api/auth/guest'"),
+  nicknameModal: instantHtml.includes('id="nickname-setup-modal"'),
+  nicknameHandler: instantHtml.includes("$('#nickname-setup-form').addEventListener('submit'"),
+  noPasswordForm: !instantHtml.includes('id="auth-password"') && !instantHtml.includes('id="auth-form"'),
+  noEmailForm: !instantHtml.includes('id="auth-email"') && !instantHtml.includes('id="email-gate-modal"')
+};
+const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
+if (failed.length) throw new Error('Instant account checks failed: ' + failed.join(', '));
+
+fs.writeFileSync(serverPath, instantServer, 'utf8');
+fs.writeFileSync(htmlPath, instantHtml, 'utf8');
+console.log('OK: аккаунт создаётся автоматически; пользователь выбирает только никнейм.');
