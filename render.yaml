@@ -5,7 +5,7 @@ services:
     plan: free
     region: frankfurt
     branch: main
-    buildCommand: 'unzip -o "AlienStageTelegram-email-login.zip" -d . && cd AlienStageTelegram && npm install --omit=dev'
+    buildCommand: 'unzip -o "AlienStageTelegram-email-login.zip" -d . && node render-fix.cjs && cd AlienStageTelegram && npm install --omit=dev'
     startCommand: 'cd AlienStageTelegram && npm start'
     healthCheckPath: /health
     envVars:
